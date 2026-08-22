@@ -1,5 +1,5 @@
 /* RONDO service worker — maakt het spel offline speelbaar */
-const CACHE = "rondo-v11";
+const CACHE = "rondo-v14";
 const BESTANDEN = ["./", "./index.html", "./manifest.webmanifest",
   "./icon-192.png", "./icon-512.png", "./icon-maskable.png"];
 
