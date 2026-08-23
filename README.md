@@ -14,12 +14,13 @@ open `index.html` en je speelt. Als PWA kun je hem op je beginscherm zetten en o
 | `README.md` | dit bestand |
 
 ## Wat er in het spel zit
-- 9 competities (Premier League, Championship, La Liga, Serie A, Bundesliga, Ligue 1, Eredivisie,
-  Primeira Liga, Pro League) plus 28 losse Europese clubs — 196 clubs en ~5.900 spelers
+- 18 competities in 11 landen (Engeland t/m League Two, Spanje, Italië, Duitsland, Frankrijk, Nederland,
+  Portugal, België, Turkije, Polen, Schotland) — 351 clubs en ruim 10.000 spelers
 - Champions League, Europa League en Conference League in het huidige format (36 clubs, acht duels,
   tussenronde, knock-out) met een vijfjarige coëfficiëntenlijst
-- Nationale bekers per land, interlandperiodes met eindtoernooi, transfermarkt met onderhandelingen,
-  deadline day, huurcontracten, scouting, training, moraal en bestuursdoelen
+- Nationale bekers en supercups per land, UEFA Super Cup, interlandperiodes met eindtoernooi,
+  transfermarkt met onderhandelingen, deadline day, huurcontracten, scouting, training, moraal,
+  jeugdopleiding, bondscoachcarrière, derby's en publiekssfeer
 - Live wedstrijden minuut voor minuut met rustmoment, wissels en tactische bijsturing
 
 ## Online zetten via GitHub Pages
