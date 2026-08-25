@@ -14,8 +14,8 @@ open `index.html` en je speelt. Als PWA kun je hem op je beginscherm zetten en o
 | `README.md` | dit bestand |
 
 ## Wat er in het spel zit
-- 18 competities in 11 landen (Engeland t/m League Two, Spanje, Italië, Duitsland, Frankrijk, Nederland,
-  Portugal, België, Turkije, Polen, Schotland) — 351 clubs en ruim 10.000 spelers
+- 30 competities in 21 landen — 517 clubs en bijna 15.000 spelers, van de Premier League tot League Two,
+  met Turkije, Polen, Schotland, Denemarken, Oostenrijk, Zwitserland, Argentinië, Brazilië en Saoedi-Arabië
 - Champions League, Europa League en Conference League in het huidige format (36 clubs, acht duels,
   tussenronde, knock-out) met een vijfjarige coëfficiëntenlijst
 - Nationale bekers en supercups per land, UEFA Super Cup, interlandperiodes met eindtoernooi,
@@ -31,7 +31,8 @@ open `index.html` en je speelt. Als PWA kun je hem op je beginscherm zetten en o
 5. Open die link op je telefoon en kies "Zet op beginscherm".
 
 ## Opslag
-Het spel bewaart je carrière in de browser (localStorage) en heeft drie handmatige slots.
+Het spel bewaart je carrière in de browser (IndexedDB) en heeft drie handmatige slots plus een automatische
+veiligheidskopie van vlak vóór elke jaarwisseling.
 Saves zijn gzip-verpakt (~0,7 MB). Via Wereld → Opslaan kun je exporteren naar een bestand en
 weer importeren — handig om je carrière naar een ander apparaat te verhuizen.
 
