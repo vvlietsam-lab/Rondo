@@ -14,7 +14,7 @@ open `index.html` en je speelt. Als PWA kun je hem op je beginscherm zetten en o
 | `README.md` | dit bestand |
 
 ## Wat er in het spel zit
-- 30 competities in 21 landen — 517 clubs en bijna 15.000 spelers, van de Premier League tot League Two,
+- 31 competities in 21 landen, inclusief de Keuken Kampioen Divisie — 517 clubs en bijna 15.000 spelers, van de Premier League tot League Two,
   met Turkije, Polen, Schotland, Denemarken, Oostenrijk, Zwitserland, Argentinië, Brazilië en Saoedi-Arabië
 - Champions League, Europa League en Conference League in het huidige format (36 clubs, acht duels,
   tussenronde, knock-out) met een vijfjarige coëfficiëntenlijst
