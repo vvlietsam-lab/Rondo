@@ -1098,7 +1098,7 @@ header{box-shadow:0 1px 0 var(--line),0 6px 18px rgba(0,0,0,.22)}
 /* ============================================================
    Eredivisie Manager — engine (geen DOM)
    ============================================================ */
-const SAVE_KEY="rondo_save", SAVE_VERSION=30;
+const SAVE_KEY="rondo_save", SAVE_VERSION=31;
 
 const GROUP={GK:"GK",CB:"VD",LB:"VD",RB:"VD",LWB:"VD",RWB:"VD",CDM:"MID",CM:"MID",CAM:"MID",LM:"MID",RM:"MID",LW:"AV",RW:"AV",ST:"AV",CF:"AV"};
 const SLOTW={GK:{a:0,d:0,m:0},CB:{a:.20,d:1.05,m:.15},LB:{a:.32,d:.92,m:.25},RB:{a:.32,d:.92,m:.25},
@@ -2021,6 +2021,8 @@ function prestatieFactor(c){
 }
 function logTransfer(p,van,naar,fee){
   p.laatsteTransfer=S.season;
+  /* wie definitief wordt overgenomen, is geen huurling meer */
+  p.loanFrom=null; p.loanUntil=null; p.telijst=null;
   S.transferLog=S.transferLog||[];
   S.transferLog.push({season:S.season,round:S.round,pid:p.id,naam:p.name,ovr:p.ovr,pos:p.pos,
     van:van,naar:naar,fee:fee||0});
@@ -2033,12 +2035,14 @@ function transferBudget(cid){
   const deel=clamp(clubKracht(c)/Math.max(max,1),.04,1.15);
   let markt=Math.max(top*Math.pow(deel,1.95),top*.022)*prestatieFactor(c);
   markt=Math.min(markt,top*1.45)*(1-(c.shift||0)*.30);
-  /* alleen dit seizoen verkocht geld telt op; eerder uitgegeven geld drukt het budget niet onder nul */
-  const saldo=clamp((c.transferIn||0)-(c.transferUit||0),-markt*.6,markt*1.2);
+  /* wat je dit seizoen uitgaf, gaat er volledig vanaf; wat je verkocht komt erbij */
+  const saldo=Math.min((c.transferIn||0)-(c.transferUit||0),markt*1.2);
   /* prijzengeld en spaargeld tellen mee: een verrassende kampioen kan écht investeren */
   const reserve=Math.max(3000,expectedIncome(c)*.35);
   const spaargeld=Math.max(0,(c.balance||0)-reserve)*.45;
-  return Math.max(0,Math.round(markt+saldo+spaargeld));
+  /* lopende biedingen zijn al gereserveerd */
+  const vast=cid===S.myClub?(S.pending||[]).filter(d=>d.club===cid).reduce((a,d)=>a+d.fee,0):0;
+  return Math.max(0,Math.round(markt+saldo+spaargeld-vast));
 }
 
 /* ---------------- moraal & bestuur ---------------- */
@@ -2166,8 +2170,9 @@ function buy(pid,cid){
   if(wageBill(cid)+wage>club.wageBudget) return "Dat past niet in je salarisbudget.";
   if(p.club>=0&&squadSize(p.club)<=16&&!clause) return `${S.clubs[p.club].name} wil hem niet kwijt, hun selectie is te dun.`;
   if(!clause&&!playerAccepts(p,cid)) return `${p.name} ziet een overstap naar ${club.name} niet zitten.`;
-  if(p.club>=0){S.clubs[p.club].balance+=fee;}
-  club.balance-=fee;
+  if(p.club>=0){S.clubs[p.club].balance+=fee;S.clubs[p.club].transferIn=(S.clubs[p.club].transferIn||0)+fee;}
+  club.balance-=fee; club.transferUit=(club.transferUit||0)+fee;   // je budget krimpt echt
+  logTransfer(p,p.club,cid,fee);
   verversSelecties(),p.club=cid;p.wage=wage;p.contract=S.season+ri(3,4);p.cond=Math.max(p.cond,85);
   p.morale=clamp(p.morale+18,0,100);p.unhappy=false;
   p.clause=Math.random()<.3?Math.round(p.value*rf(1.8,2.8)):0;
@@ -3791,7 +3796,10 @@ function makeBid(pid,fee,wage,role){
   if(!windowOpen()&&!S.dl) return {err:"De transfermarkt is gesloten."};
   if(squadSize(S.myClub)>=34) return {err:"Je selectie zit vol."};
   if(fee>transferBudget(S.myClub)) return {err:"Dat kun je niet betalen."};
-  if(wageBill(S.myClub)-0+wage>me.wageBudget) return {err:"Dat past niet in je salarisbudget."};
+  /* ook lopende biedingen en toezeggingen tellen mee in je loonruimte */
+  const vastLoon=(S.pending||[]).filter(d=>d.club===S.myClub).reduce((a,d)=>a+d.wage,0);
+  if(wageBill(S.myClub)+vastLoon+wage>me.wageBudget) return {err:"Dat past niet in je salarisbudget — je hebt al biedingen lopen."};
+  if((S.pending||[]).some(d=>d.pid===pid)) return {err:"Je hebt al een bod op deze speler lopen."};
   if(S.dl){S.dl.hours=Math.max(0,S.dl.hours-1);}
   if(p.club>=0){
     const cv=clubVerdict(p,S.myClub,fee);
@@ -3823,6 +3831,7 @@ function completeTransfer(pid,fee,wage,role,cid){
   S.clubs[cid].balance-=fee; S.clubs[cid].transferUit=(S.clubs[cid].transferUit||0)+fee;
   const icoon=oud>=0&&(p.captain||statusOf(p)==="Clubicoon");
   verversSelecties(),p.club=cid;p.wage=wage;p.contract=S.season+ri(3,4);p.role=role;p.jaren=0;p.telijst=null;
+  p.loanFrom=null;p.loanUntil=null;                 // een aankoop is geen huur meer
   p.morale=clamp(p.morale+18,0,100);p.unhappy=false;p.scouted=100;
   p.clause=Math.random()<.3?Math.round(p.value*rf(1.8,2.8)):0;
   if(oud>=0){
