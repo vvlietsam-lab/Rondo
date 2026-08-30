@@ -1013,6 +1013,45 @@ html.rustig *,html.rustig *::before,html.rustig *::after{animation:none!importan
 .nieuwsrij{display:flex;align-items:center;gap:7px;padding:9px 14px;border-top:1px solid var(--zacht);font-size:12.5px;
   color:var(--txt-2);flex-wrap:wrap}
 .nieuwsrij b{color:var(--txt);font-weight:600}
+
+/* ---------- kleine visuele ronde ---------- */
+/* tabelrijen met zachte scheiding en betere leesbaarheid */
+.row{padding-top:9px;padding-bottom:9px}
+.row .nm small{opacity:.8}
+.row.mine{background:linear-gradient(90deg,color-mix(in srgb,var(--club) 16%,transparent),transparent 62%)}
+/* ratingbadges met diepte */
+.badge,.ratingbadge,.trovr,.pk-links{box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 1px 2px rgba(0,0,0,.3)}
+/* kaartkoppen met een fijn accentstreepje */
+.card-h::before{content:"";display:inline-block;width:3px;height:11px;border-radius:99px;
+  background:var(--club);margin-right:8px;vertical-align:-1px;opacity:.85}
+/* vormbolletjes ronder en duidelijker */
+.form b{border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.form b.W{background:var(--win);color:#08130c}
+.form b.G{background:var(--gold);color:#191204}
+.form b.V{background:var(--loss);color:#fff}
+/* knoppen: subtiele hover en scherpere focus */
+button{-webkit-tap-highlight-color:transparent}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* schema- en uitslagenrijen luchtiger */
+.schl{padding:9px 14px}
+.fix{padding-bottom:2px}
+.fix .line{padding:10px 14px 4px}
+.fix .sc{font-size:16px;letter-spacing:-.4px}
+/* lijstjes met nummering krijgen een vaste breedte */
+.rpos,.cpos,.epos,.trnr{font-variant-numeric:tabular-nums}
+/* de inbox: ongelezen berichten vallen beter op */
+.msg.ongelezen{border-left:3px solid var(--accent)}
+.msg .mkop{font-weight:700}
+/* zachte scheidingslijn onder de kop */
+header{box-shadow:0 1px 0 var(--line),0 6px 18px rgba(0,0,0,.22)}
+/* de actiebalk krijgt een verloop zodat de inhoud er netjes onder wegvalt */
+.controls{background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 55%,transparent),var(--bg) 42%)}
+/* spelerskaart-tegels iets ruimer */
+.pk-cijfers span{padding:6px 8px}
+/* stadionkaart: naam beter leesbaar op lichte tekening */
+.stadion-info{background:linear-gradient(180deg,transparent,rgba(0,0,0,.78))}
+/* lege staten met zachtere toon */
+.leeg-blok .lbi{opacity:.5}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -1059,7 +1098,7 @@ html.rustig *,html.rustig *::before,html.rustig *::after{animation:none!importan
 /* ============================================================
    Eredivisie Manager — engine (geen DOM)
    ============================================================ */
-const SAVE_KEY="rondo_save", SAVE_VERSION=27;
+const SAVE_KEY="rondo_save", SAVE_VERSION=30;
 
 const GROUP={GK:"GK",CB:"VD",LB:"VD",RB:"VD",LWB:"VD",RWB:"VD",CDM:"MID",CM:"MID",CAM:"MID",LM:"MID",RM:"MID",LW:"AV",RW:"AV",ST:"AV",CF:"AV"};
 const SLOTW={GK:{a:0,d:0,m:0},CB:{a:.20,d:1.05,m:.15},LB:{a:.32,d:.92,m:.25},RB:{a:.32,d:.92,m:.25},
@@ -1175,16 +1214,19 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const mean=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:60;
 const byId=id=>S.players.find(p=>p.id===id);
 /* selectie-index: zonder deze cache wordt de hele spelerslijst per opvraag doorlopen */
-let SQ_CACHE=null, SQ_STEMPEL=-1;
+let SQ_CACHE=null, SQ_STEMPEL=-1, SQ_BRON=null;
 function selectieIndex(){
   const stempel=(S._sqv||0)*1e7+S.players.length;
-  if(SQ_CACHE&&SQ_STEMPEL===stempel) return SQ_CACHE;
+  /* ook de spelerslijst zelf vergelijken: bij het laden van een save wisselt het hele
+     spelersbestand terwijl de lengte gelijk kan blijven */
+  if(SQ_CACHE&&SQ_STEMPEL===stempel&&SQ_BRON===S.players) return SQ_CACHE;
+  SQ_BRON=S.players;
   const m=new Map();
   for(const p of S.players){ if(p.club<0) continue; let a=m.get(p.club); if(!a) m.set(p.club,a=[]); a.push(p); }
   SQ_CACHE=m; SQ_STEMPEL=stempel;
   return m;
 }
-function verversSelecties(){S._sqv=(S._sqv||0)+1;SQ_CACHE=null;}
+function verversSelecties(){S._sqv=(S._sqv||0)+1;SQ_CACHE=null;SQ_BRON=null;}
 const squad=cid=>selectieIndex().get(cid)||[];
 const squadSize=cid=>squad(cid).length;
 const wageBill=cid=>squad(cid).reduce((s,p)=>s+p.wage,0);
@@ -1212,6 +1254,8 @@ function newGame(myClub){
   buildCups();
   euroQualification(); newEuroSeason(); initNations();
   setBudgets();
+  loonNormalisatie();
+  setBudgets();
   /* je begint met de speelstijl en de beste opstelling van je club */
   const mc=S.clubs[S.myClub];
   S.tactics.mentality=mc.tactic||"Gebalanceerd";
@@ -1219,7 +1263,6 @@ function newGame(myClub){
   const beste=besteOpstelling(S.myClub);
   if(beste){S.tactics.formation=beste.formatie;S.lineup=beste.xi;}
   else S.lineup=autoXI(S.myClub,"4-3-3");
-  aiWindow(3);
   initV5();
   doelenZetten();
   save();
@@ -1394,29 +1437,36 @@ function pickShooter(T){
 function bench(cid,xi){
   return squad(cid).filter(p=>available(p)&&!xi.some(x=>x&&x.id===p.id)).sort((a,b)=>b.ovr-a.ovr);
 }
-function subIn(T,minute,timeline){
+function subIn(T,minute,timeline,verplicht){
   if(T.subs>=3) return;
-  const tired=T.xi.map((p,i)=>({p,i})).filter(x=>x.p&&x.p.pos!=="GK"&&x.p.cond<62)
-    .sort((a,b)=>a.p.cond-b.p.cond)[0];
-  if(!tired) return;
-  const b=bench(T.cid,T.xi).filter(p=>p.pos!=="GK"&&p.cond>75);
-  const slot=T.slots[tired.i][0];
-  b.sort((x,y)=>slotFit(y,slot)-slotFit(x,slot));
-  if(!b[0]) return;
-  const inP=b[0], outP=tired.p;
-  T.xi[tired.i]=inP; T.subs++;
+  const veld=T.xi.map((p,i)=>({p,i})).filter(x=>x.p&&x.p.pos!=="GK");
+  /* eerst wie op is, daarna — als er toch gewisseld wordt — de zwakste schakel */
+  let uit=veld.filter(x=>x.p.cond<70).sort((a,b)=>a.p.cond-b.p.cond)[0];
+  if(!uit&&verplicht) uit=veld.slice().sort((a,b)=>(a.p.ovr+a.p.cond*.12)-(b.p.ovr+b.p.cond*.12))[0];
+  if(!uit) return;
+  const b=bench(T.cid,T.xi).filter(p=>p.pos!=="GK"&&p.cond>68&&available(p));
+  if(!b.length) return;
+  const slot=T.slots[uit.i][0];
+  b.sort((x,y)=>(slotFit(y,slot)+y.cond*.05)-(slotFit(x,slot)+x.cond*.05));
+  const inP=b[0], outP=uit.p;
+  if(!verplicht&&inP.ovr<outP.ovr-6) return;      // geen zinloze verzwakking
+  T.xi[uit.i]=inP; T.subs++;
+  /* de speler die eruit gaat, houdt de minuten die hij daadwerkelijk speelde */
+  if(T.ratings[outP.id]) T.ratings[outP.id].mins=minute;
   T.ratings[inP.id]={g:0,base:6.3,mins:90-minute};
   timeline.push({min:minute,type:"sub",c:T.cid,n:inP.name,out:outP.name});
 }
 function poisson(l){let L=Math.exp(-l),k=0,p=1;do{k++;p*=Math.random();}while(p>L);return k-1;}
+/* uitschieters dempen: ook een sterke favoriet maakt zelden meer dan vier goals */
+function dempXG(x){ return x<=1.9?x:1.9+(x-1.9)*.38; }
 function simLight(hid,aid,opt){
   const H=setupCached(hid), A=setupCached(aid), lg=opt.lg||leagueAvg(), ctx=opt.ctx||"lg";
   const edgeH=STYLE_EDGE[H.style][A.style], edgeA=STYLE_EDGE[A.style][H.style];
   const hAdv=opt.neutral?1:1.02+sfeer(hid)*.0016, aAdv=opt.neutral?1:.92;
   const BASE=engineParams.LBASE, EXP=engineParams.LEXP;
   const rH=Math.pow(A.ruimte||1,.4), rA=Math.pow(H.ruimte||1,.4);
-  const xh=clamp(BASE*Math.pow((H.att*rH/lg.a)*(lg.d/A.def),EXP)*hAdv*edgeH*(H.mod/A.mod),.10,5.5);
-  const xa=clamp(BASE*Math.pow((A.att*rA/lg.a)*(lg.d/H.def),EXP)*aAdv*edgeA*(A.mod/H.mod),.10,5.5);
+  const xh=dempXG(clamp(BASE*Math.pow((H.att*rH/lg.a)*(lg.d/A.def),EXP)*hAdv*edgeH*(H.mod/A.mod),.10,5.5));
+  const xa=dempXG(clamp(BASE*Math.pow((A.att*rA/lg.a)*(lg.d/H.def),EXP)*aAdv*edgeA*(A.mod/H.mod),.10,5.5));
   const hg=poisson(xh), ag=poisson(xa), sc=[];
   [[H,hg,"h"],[A,ag,"a"]].forEach(([T,n,t])=>{
     for(let i=0;i<n;i++){
@@ -1439,15 +1489,38 @@ function simLight(hid,aid,opt){
   const events=[];
   [[H,hid,ag],[A,aid,hg]].forEach(([T,cid,tegen])=>{
     const intens=S.clubs[cid].prestige>73?1.1:.95;
+    /* wissels: bankspelers komen erin, en de minuten die zij spelen gaan
+       precies af van de basisspelers die naar de kant gaan */
+    const bank=bench(cid,T.xi).filter(p=>p.pos!=="GK"&&p.cond>68);
+    const invallers=[];
+    const aantal=Math.min(bank.length,ri(2,3));
+    for(let k=0;k<aantal;k++){
+      const p=bank[ri(0,Math.min(5,bank.length-1))];
+      if(p&&invallers.indexOf(p)<0) invallers.push(p);
+    }
+    const veld=T.xi.filter(p=>p&&p.pos!=="GK").slice().sort((a,b)=>a.ovr-b.ovr);
+    const eruitLijst=[];
+    invallers.forEach((p,i)=>{
+      const uit=veld[i];
+      if(!uit){ return; }
+      const min=ri(12,32);
+      const st=stOf(p,ctx);
+      p.apps++; st.ap++; st.min+=min;
+      p.cond=clamp(p.cond-Math.round(rf(4,9)*intens),0,100);
+      const rating=clamp(6.2+rf(-.5,.7),3,10);
+      p.rSum+=rating*(min/90); p.rN+=min/90; st.rs+=rating; st.rn+=1;
+      eruitLijst.push({id:uit.id,min});
+    });
     T.xi.forEach(p=>{
       if(!p) return;
       const st=stOf(p,ctx);
-      p.apps++; st.ap++; st.min+=90;
+      const gewisseld=eruitLijst.find(x=>x.id===p.id);
+      p.apps++; st.ap++; st.min+=gewisseld?90-gewisseld.min:90;
       st.sh+=Math.random()<.45?1:0;
-      p.cond=clamp(p.cond-Math.round(rf(9,16)*intens),0,100);
+      p.cond=clamp(p.cond-Math.round(rf(13,20)*intens),0,100);
       if(tegen===0&&(p.pos==="GK"||p.pos==="VD")) st.cs++;
       if(Math.random()<.17) st.yc++;
-      const risk=.011*intens*(1+(100-p.cond)/130)*(p.age>=31?1.35:1);
+      const risk=.024*intens*(1+(100-p.cond)/110)*(p.age>=31?1.4:1);
       const med=(cid===S.myClub&&S.faciliteiten)?S.faciliteiten.medisch:2;
       if(Math.random()<risk*(1-(med-2)*.10)){
         p.inj=Math.max(1,Math.round(ri(1,8)*(1-(med-2)*.12)));
@@ -1506,8 +1579,8 @@ function matchStart(hid,aid,opt){
   /* dezelfde doelpuntverwachting als de snelle simulatie, zodat jouw duels niet anders uitpakken */
   const BASE=engineParams.LBASE, EXP=engineParams.LEXP;
   const ruH=Math.pow(A.ruimte||1,.4), ruA=Math.pow(H.ruimte||1,.4);
-  const xh=clamp(BASE*Math.pow((H.att*menH.a*ruH/lg.a)*(lg.d/(A.def*menA.d)),EXP)*hAdv*edgeH*(H.mod/A.mod),.10,5.5);
-  const xa=clamp(BASE*Math.pow((A.att*menA.a*ruA/lg.a)*(lg.d/(H.def*menH.d)),EXP)*aAdv*edgeA*(A.mod/H.mod),.10,5.5);
+  const xh=dempXG(clamp(BASE*Math.pow((H.att*menH.a*ruH/lg.a)*(lg.d/(A.def*menA.d)),EXP)*hAdv*edgeH*(H.mod/A.mod),.10,5.5));
+  const xa=dempXG(clamp(BASE*Math.pow((A.att*menA.a*ruA/lg.a)*(lg.d/(H.def*menH.d)),EXP)*aAdv*edgeA*(A.mod/H.mod),.10,5.5));
   const convVan=(T,D)=>{
     const w={GK:0,VD:.11,MID:.40,AV:.85};
     let som=0,gew=0;
@@ -1524,7 +1597,15 @@ function matchSegments(M,tot,eind){
   const {H,A,lg,ctx,hAdv,aAdv,timeline,menH,menA,edgeH,edgeA}=M;
   for(let seg=M.seg;seg<eind;seg++){
     const minute=seg*5+ri(1,5);
-    if(minute>58){ subIn(H,minute,timeline); subIn(A,minute,timeline); }
+    /* rond het uur en daarna vallen er standaard wissels, zoals in een echte wedstrijd */
+    if(!M._subMin) M._subMin=[];
+    [60,71,80].forEach(grens=>{
+      if(minute>=grens&&M._subMin.indexOf(grens)<0){
+        M._subMin.push(grens);
+        subIn(H,minute,timeline,true); subIn(A,minute,timeline,true);
+      }
+    });
+    if(minute>50){ subIn(H,minute,timeline); subIn(A,minute,timeline); }
     // conditie loopt terug binnen de wedstrijd
     const wear=(T)=>T.xi.forEach(p=>{if(p)p._w=(p._w||0)+rf(.4,.9)*(T.cid===S.myClub?PRESSING[S.tactics.pressing].drain:1)*(T.tempoCond||1);});
     wear(H); wear(A);
@@ -1588,13 +1669,13 @@ function matchFinish(M){
       const p=byId(+idS), r=T.ratings[idS];
       if(!p) return;
       const share=r.mins/90;
-      p.apps+=share>=.5?1:0;
-      p.cond=clamp(p.cond-Math.round(rf(9,16)*intensity*share),0,100);
+      p.apps+=r.mins>0?1:0;
+      p.cond=clamp(p.cond-Math.round(rf(13,20)*intensity*share),0,100);
       // blessurekans: conditie, leeftijd, intensiteit
-      const risk=.011*share*intensity*(1+(100-p.cond)/130)*(p.age>=31?1.35:p.age<=21?1.15:1);
+      const risk=.026*share*intensity*(1+(100-p.cond)/110)*(p.age>=31?1.4:p.age<=21?1.15:1);
       const S2=stOf(p,ctx);
       if(opt.vriend){p.cond=clamp(p.cond+6,0,100);}
-      else S2.ap+=share>=.5?1:0; S2.min+=Math.round(r.mins);
+      else { S2.ap+=r.mins>0?1:0; S2.min+=Math.round(r.mins); }
       if(ga===0&&(p.pos==="GK"||p.pos==="VD")&&share>=.6) S2.cs++;
       if(Math.random()<.17+(p.pos==="VD"?.06:0)) S2.yc++;
       const med2=(T.cid===S.myClub&&S.faciliteiten)?S.faciliteiten.medisch:2;
@@ -1692,7 +1773,8 @@ function elftalCheck(){
 }
 function recover(){
   S.players.forEach(p=>{
-    p.cond=clamp(p.cond+ri(13,21),0,100);
+    const fac=(p.club===S.myClub&&S.faciliteiten)?S.faciliteiten.medisch:2;
+    p.cond=clamp(p.cond+ri(6,11)+(fac-2)*1.5,0,100);
     if(p.inj>0)p.inj--; else if(p.ban>0)p.ban--;
     if(p.inj>0) p.morale=clamp(p.morale-.6,0,100);
   });
@@ -1739,7 +1821,14 @@ function simRound(mijn){
   save();
   /* elke ronde de ergste uitschieters bijsturen */
   S.clubs.forEach(c=>{
-    if(c.league<0||wageBill(c.id)<=c.wageBudget*1.6||squadSize(c.id)<=16) return;
+    if(c.league<0||wageBill(c.id)<=c.wageBudget*1.35) return;
+    if(squadSize(c.id)<=16){
+      /* niemand te missen: dan maar salaris inleveren */
+      squad(c.id).sort((a,b)=>b.wage-a.wage).slice(0,4).forEach(p=>{
+        p.wage=Math.round(Math.max(300,p.wage*.9)); p.morale=clamp(p.morale-2,0,100);
+      });
+      return;
+    }
     const kern=squad(c.id).slice().sort((a,b)=>b.ovr-a.ovr).slice(0,13).map(p=>p.id);
     const weg=squad(c.id).filter(p=>p.loanFrom==null&&kern.indexOf(p.id)<0).sort((a,b)=>b.wage-a.wage)[0];
     if(weg){ verversSelecties(); weg.club=-1; weg.contract=S.season; }
@@ -1844,7 +1933,7 @@ function matchdayFinance(round){
     c.balance+=gate+merch; c.income+=gate+merch;
   });
   S.clubs.forEach(c=>{
-    const w=Math.round(wageBill(c.id)*1.6/1000);          // salarissen incl. werkgeverslasten
+    const w=Math.round(wageBill(c.id)*1.28/1000);         // salarissen incl. werkgeverslasten
     const staff=Math.round(c.prestige*1.7);               // staf en organisatie
     const f=tvOf(c);
     const tv=Math.round((260+(c.prestige-64)*16)*(.35+f*1.5));   // mediagelden per speelronde
@@ -1865,6 +1954,19 @@ function expectedIncome(c){
   const comm=38*Math.round((150+Math.max(0,c.reputation!=null?c.reputation:(c.prestige-58)*4.2)*11)*(.5+tv));
   const euro=c.euro?({CL:9000,EL:3200,ECL:1400})[c.euro]||0:0;
   return Math.round(gate+media+comm+euro);
+}
+function loonNormalisatie(){
+  /* clubs geven in het echt 50 tot 70 procent van hun omzet uit aan salarissen;
+     de brondata zit daar ver onder, dus schalen we elke loonlijst één keer bij */
+  S.clubs.forEach(c=>{
+    if(c.league<0) return;
+    const doel=expectedIncome(c)*1000*.52/34;      // euro per week
+    const nu=wageBill(c.id);
+    if(nu<=0) return;
+    const f=clamp(doel/nu,.7,5);
+    squad(c.id).forEach(p=>{p.wage=Math.round(clamp(p.wage*f,300,1.2e6));});
+  });
+  S.players.filter(p=>p.club<0).forEach(p=>{p.wage=Math.round(clamp(p.wage*2.2,300,9e5));});
 }
 function setBudgets(){S.clubs.forEach(c=>{c.wageBasis=Math.round(expectedIncome(c)*.78/34*1000);
   c.wageBudget=Math.round(c.wageBasis*(1+(c.shift||0)*.22));});}
@@ -2099,8 +2201,10 @@ function transferAanbiedingen(){
   if(!windowOpen()&&!S.dl) return;
   squad(S.myClub).filter(p=>p.telijst).forEach(p=>{
     if(Math.random()>.34) return;
-    const kopers=S.clubs.filter(c=>c.id!==S.myClub&&squadSize(c.id)<30&&
-      needs(c.id)[p.pos]>-4&&p.ovr>=c.prestige-6&&transferBudget(c.id)>=p.telijst*.6);
+    /* ook clubs een niveau lager mogen bieden: een reserve bij een topclub is
+       elders een basisspeler */
+    const kopers=S.clubs.filter(c=>c.id!==S.myClub&&c.league>=0&&squadSize(c.id)<30&&
+      needs(c.id)[p.pos]>-6&&p.ovr>=c.prestige-12&&transferBudget(c.id)>=p.telijst*.5);
     if(!kopers.length) return;
     const k=kopers[ri(0,kopers.length-1)];
     const bod=Math.round(p.telijst*rf(.62,1.12));
@@ -2278,8 +2382,20 @@ function aiWindow(n){
     const kern=squad(buyer.id).slice().sort((a,b)=>b.ovr-a.ovr).slice(0,11);
     const niveau=kern.length?mean(kern.map(p=>p.ovr)):buyer.prestige-4;
     const drempel=Math.min(buyer.prestige-3,niveau-2);
+    const onmisbaar=p=>{
+      /* clubs verkopen hun sterkhouders niet zomaar: alleen bij een clausule,
+         onvrede of een aflopend contract komt een topspeler los */
+      if(p.club<0) return false;
+      const c2=S.clubs[p.club];
+      const kern=squad(p.club).slice().sort((a,b)=>b.ovr-a.ovr).slice(0,5).map(x=>x.id);
+      if(kern.indexOf(p.id)<0) return false;
+      if(p.unhappy||yearsLeft(p)<=1) return false;
+      if(p.clause&&p.clause<=transferBudget(buyer.id)&&Math.random()<.25) return false;
+      /* alleen een duidelijk grotere club kan hem alsnog wegkopen, en zelden */
+      return !(buyer.reputation>=c2.reputation+7&&Math.random()<.18);
+    };
     const targets=S.players.filter(p=>p.club!==buyer.id&&p.club!==S.myClub&&p.pos===gap&&
-      p.laatsteTransfer!==S.season&&
+      p.laatsteTransfer!==S.season&&!onmisbaar(p)&&
       p.ovr>drempel&&askPrice(p)<=bud&&
       wageBill(buyer.id)+wageDemand(p)<=buyer.wageBudget&&
       p.loanFrom==null&&
@@ -2291,8 +2407,8 @@ function aiWindow(n){
     targets.sort((a,b)=>(b.ovr+(b.unhappy?3:0))-(a.ovr+(a.unhappy?3:0)));
     const t=targets[ri(0,Math.min(4,targets.length-1))];
     /* rijke clubs betalen een premie voor de allerbesten */
-    const premie=1+clamp((bud/Math.max(askPrice(t),1)-1)*.10,0,.35)*(t.ovr>=84?1:.4);
-    const fee=Math.round(askPrice(t)*premie);
+    const premie=1+clamp((bud/Math.max(askPrice(t),1)-1)*.07,0,.22)*(t.ovr>=84?1:.4);
+    const fee=Math.min(Math.round(askPrice(t)*premie),180000);   // wereldrecord blijft wereldrecord
     const from=t.club<0?"transfervrij":S.clubs[t.club].name;
     if(t.club>=0){S.clubs[t.club].balance+=fee;S.clubs[t.club].transferIn=(S.clubs[t.club].transferIn||0)+fee;}
     buyer.balance-=fee; buyer.transferUit=(buyer.transferUit||0)+fee;
@@ -2491,12 +2607,19 @@ function selectieOnderhoud(){
 function enforceWages(){
   S.clubs.forEach(c=>{
     let g=0;
+    /* kleine clubs die niemand meer kunnen missen, onderhandelen de lonen omlaag */
+    if(wageBill(c.id)>c.wageBudget*1.6&&squadSize(c.id)<=18){
+      squad(c.id).sort((a,b)=>b.wage-a.wage).slice(0,6).forEach(p=>{
+        p.wage=Math.round(Math.max(300,p.wage*.82));
+        p.morale=clamp(p.morale-4,0,100);
+      });
+    }
     /* laatste redmiddel: het duurste contract afkopen als de kern al is uitgekleed */
     if(wageBill(c.id)>c.wageBudget*2&&squadSize(c.id)<=18){
       const duur=squad(c.id).filter(p=>p.loanFrom==null).sort((a,b)=>b.wage-a.wage)[0];
       if(duur){ c.balance-=Math.round(duur.wage*10); verversSelecties(); duur.club=-1; duur.contract=S.season; }
     }
-    while(wageBill(c.id)>c.wageBudget*1.05&&squadSize(c.id)>16&&g++<60){
+    while(wageBill(c.id)>c.wageBudget&&squadSize(c.id)>16&&g++<70){
       const gk=squad(c.id).filter(p=>p.pos==="GK").length;
       /* de zestien besten blijven; daarna vertrekt wie het slechtste loont */
       const rang=squad(c.id).slice().sort((a,b)=>b.ovr-a.ovr).slice(0,16).map(p=>p.id);
@@ -2530,8 +2653,8 @@ function promotieDegradatie(){
     zakkers.forEach(id=>{S.clubs[id].league=oi;S.clubs[id].prestige=clamp(S.clubs[id].prestige-1.2,56,90);
       if(S.clubs[id].vorig) S.clubs[id].vorig.gedegradeerd=true;
       /* degradatieclausule: de lonen zakken mee met het niveau */
-      squad(id).forEach(p=>{p.wage=Math.round(p.wage*.72);});});
-    stijgers.forEach(id=>{S.clubs[id].league=bi;S.clubs[id].prestige=clamp(S.clubs[id].prestige+1.2,56,90);
+      squad(id).forEach(p=>{p.wage=Math.round(p.wage*.62);});});
+    stijgers.forEach(id=>{squad(id).forEach(p=>{p.wage=Math.round(p.wage*1.25);});S.clubs[id].league=bi;S.clubs[id].prestige=clamp(S.clubs[id].prestige+1.2,56,90);
       if(S.clubs[id].vorig) S.clubs[id].vorig.gepromoveerd=true;});
     const namen=n=>n.map(id=>S.clubs[id].name).join(", ");
     msg("nieuws","⬆️⬇️ Promotie en degradatie",
@@ -3222,6 +3345,9 @@ function swissSchedule(teams){
           const halfnet=kandidaten.filter(b=>land(b)!==land(a));
           if(netjes.length) kandidaten=netjes; else if(halfnet.length) kandidaten=halfnet;
           if(!kandidaten.length){goed=false;break;}
+          /* landgenoten treffen elkaar nooit in de competitiefase */
+          if(!kandidaten.some(b=>land(b)!==land(a))){goed=false;break;}
+          kandidaten=kandidaten.filter(b=>land(b)!==land(a));
           const b=kandidaten[Math.floor(Math.random()*kandidaten.length)];
           taken.add(a);taken.add(b);
           dd.push(Math.random()<.5?{h:a,a:b}:{h:b,a:a});
