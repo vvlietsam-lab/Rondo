@@ -1,7 +1,7 @@
 {
   "name": "RONDO Football Manager",
   "short_name": "RONDO",
-  "description": "Manage a club across 29 leagues and 500+ teams. Transfers, tactics, youth development and European nights — a complete football manager that runs in your browser, offline.",
+  "description": "Manage a club across 30 leagues and 537 teams with EA FC 27 ratings. Transfers with clauses, dynamic player ratings, youth development and European nights — a complete football manager that runs in your browser, offline.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

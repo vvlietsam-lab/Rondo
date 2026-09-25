@@ -14,7 +14,7 @@ open `index.html` en je speelt. Als PWA kun je hem op je beginscherm zetten en o
 | `README.md` | dit bestand |
 
 ## Wat er in het spel zit
-- 31 competities in 21 landen, inclusief de Keuken Kampioen Divisie — 517 clubs en bijna 15.000 spelers, van de Premier League tot League Two,
+- 30 competities in 21 landen, inclusief de Keuken Kampioen Divisie — 537 clubs en ruim 15.000 spelers, van de Premier League tot League Two,
   met Turkije, Polen, Schotland, Denemarken, Oostenrijk, Zwitserland, Argentinië, Brazilië en Saoedi-Arabië
 - Champions League, Europa League en Conference League in het huidige format (36 clubs, acht duels,
   tussenronde, knock-out) met een vijfjarige coëfficiëntenlijst
@@ -22,6 +22,19 @@ open `index.html` en je speelt. Als PWA kun je hem op je beginscherm zetten en o
   transfermarkt met onderhandelingen, deadline day, huurcontracten, scouting, training, moraal,
   jeugdopleiding, bondscoachcarrière, derby's en publiekssfeer
 - Live wedstrijden minuut voor minuut met rustmoment, wissels en tactische bijsturing
+
+## Nieuw in deze versie (FC 27-update)
+- Spelersdata bijgewerkt naar **EA FC 27**-ratings (FUTBIN, 22-09-2026) voor ruim 10.700 spelers; de rest schuift een jaar door
+  volgens het gemiddelde FC26→FC27-verloop. Een nieuwe carrière start in **2026/27**.
+- **Dynamic OVR**: vorm, moraal en wedstrijdfitheid tellen zichtbaar op of af bij elke speler.
+- **Wedstrijdfitheid** (piekfit → vermoeid) en **hervalrisico** na een blessure.
+- **Zes groeiprofielen**: vroege bloeier, laatbloeier, evergreen, atleet, technicus en standaard.
+- **Transferclausules**: betalen in 2 of 3 termijnen, doorverkooppercentages (bij kopen én verkopen) en een
+  **interessemeter** die laat zien hoe graag een speler komt.
+- **Onthulling** van nieuwe aanwinsten met fanreacties — van contract tekenen tot stadionpresentatie.
+- **Rivalen** doen onderling vrijwel geen zaken; **licentiecommissie** met puntenaftrek bij structurele rode cijfers.
+- Wedstrijdmotor opnieuw geijkt per competitie: ±2,8 goals per duel, kampioenen rond 85 punten, sterke ploegen eindigen vaker bovenaan.
+- Saves van de vorige versie worden automatisch bijgewerkt.
 
 ## Online zetten via GitHub Pages
 1. Maak een nieuwe repository (public), bijvoorbeeld `rondo`.
@@ -44,4 +57,4 @@ automatisch terug op de eigen tekening.
 
 ## Bijwerken
 Vervang `index.html` door een nieuwe versie en hoog in `sw.js` het versienummer op
-(`const CACHE = "rondo-v12"`), anders blijven bezoekers de oude versie uit hun cache zien.
+(`const CACHE = "rondo-v47"`), anders blijven bezoekers de oude versie uit hun cache zien.
