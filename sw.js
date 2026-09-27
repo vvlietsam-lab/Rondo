@@ -1,7 +1,7 @@
 /* RONDO service worker — maakt het spel offline speelbaar.
    De pagina zelf gaat altijd eerst via het netwerk, zodat je na een update meteen de nieuwe
    versie krijgt; alleen zonder verbinding valt hij terug op de bewaarde kopie. */
-const CACHE = "rondo-v50";
+const CACHE = "rondo-v51";
 const BESTANDEN = ["./", "./index.html", "./manifest.webmanifest",
   "./icon-192.png", "./icon-512.png", "./icon-maskable.png"];
 
