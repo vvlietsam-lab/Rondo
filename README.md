@@ -57,4 +57,4 @@ automatisch terug op de eigen tekening.
 
 ## Bijwerken
 Vervang `index.html` door een nieuwe versie en hoog in `sw.js` het versienummer op
-(`const CACHE = "rondo-v49"`), anders blijven bezoekers de oude versie uit hun cache zien.
+(`const CACHE = "rondo-v50"`), anders blijven bezoekers de oude versie uit hun cache zien.

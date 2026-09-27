@@ -1,12 +1,13 @@
 /* RONDO service worker — maakt het spel offline speelbaar.
    De pagina zelf gaat altijd eerst via het netwerk, zodat je na een update meteen de nieuwe
    versie krijgt; alleen zonder verbinding valt hij terug op de bewaarde kopie. */
-const CACHE = "rondo-v49";
+const CACHE = "rondo-v50";
 const BESTANDEN = ["./", "./index.html", "./manifest.webmanifest",
   "./icon-192.png", "./icon-512.png", "./icon-maskable.png"];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(BESTANDEN.map(u => new Request(u, {cache: "reload"}))))
+  /* een mislukte voorkopie mag de installatie nooit blokkeren */
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(BESTANDEN.map(u => new Request(u, {cache: "reload"})))).catch(() => {})
     .then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", e => {
@@ -21,11 +22,17 @@ self.addEventListener("fetch", e => {
     url.pathname.endsWith(".webmanifest");
   if (isPagina) {
     /* netwerk eerst: altijd de nieuwste versie */
+    /* Safari weigert fetch(request, opties) bij een navigatie; daarom een nieuw verzoek op de URL */
+    const vers = new Request(url.href, {cache: "no-store", credentials: "same-origin"});
     e.respondWith(
-      fetch(e.request, {cache: "no-store"}).then(res => {
-        if (res && res.status === 200) { const kopie = res.clone(); caches.open(CACHE).then(c => c.put(e.request, kopie)); }
+      fetch(vers).then(res => {
+        /* Safari weigert een doorverwezen antwoord op een navigatie (bv. /Rondo → /Rondo/) */
+        if (res && res.redirected) return Response.redirect(res.url, 302);
+        if (res && res.status === 200) { const kopie = res.clone(); caches.open(CACHE).then(c => c.put(e.request.url, kopie)).catch(() => {}); }
         return res;
-      }).catch(() => caches.match(e.request).then(c => c || caches.match("./index.html")))
+      }).catch(() => caches.match(e.request.url, {ignoreSearch: true})
+        .then(c => c || caches.match("./index.html"))
+        .then(c => c || fetch(e.request)))
     );
     return;
   }
